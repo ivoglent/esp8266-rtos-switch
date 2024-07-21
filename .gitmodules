@@ -1,0 +1,3 @@
+[submodule "components/esp8266-rtos-core"]
+	path = components/esp8266-rtos-core
+	url = git@github.com:ivoglent/esp8266-rtos-core.git
