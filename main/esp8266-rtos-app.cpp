@@ -7,12 +7,13 @@
 #include "Utils.h"
 #include "system/mqtt/MqttService.h"
 #include "system/wifi/WifiService.h"
-#ifndef CONFIG_IS_1MB_FLASH
+#ifndef CONFIG_SUPPORT_OTA_UPDATE
 #include "system/ota/OtaService.h"
 #endif
 #include "system/console/Console.h"
 #include "system/config/ConfigurationService.h"
 #include "system/command/CommandService.h"
+#include "system/smart_config/SmartConfigService.h"
 #include "build_info.h"
 #include "UserEvent.h"
 #include "driver/gpio.h"
@@ -28,8 +29,9 @@ public:
         getRegistryInstance().create<ConsoleService>();
         getRegistryInstance().create<ConfigurationService>(APP_VERSION);
         getRegistryInstance().create<CommandService>();
+        //getRegistryInstance().create<SmartConfigService>();
         auto& mqtt = getRegistryInstance().create<MqttService>();
-#ifndef CONFIG_IS_1MB_FLASH
+#ifndef CONFIG_SUPPORT_OTA_UPDATE
         getRegistryInstance().create<OtaService>();
         mqtt.registerEventPublisher<OtaVersion>("/ota/device/inform", MQTT_PUB_RELATIVE_SUFFIX);
         mqtt.registerEventConsumer<OtaEvent>("/ota/device/upgrade", MQTT_SUB_RELATIVE_SUBFIX);
@@ -40,7 +42,7 @@ public:
     void onEvent(const SystemEventChanged &event) {
         //esp_logi(app, "Got event bus msg!");
         if (event.status == SystemStatus::READY) {
-#ifndef CONFIG_IS_1MB_FLASH
+#ifndef CONFIG_SUPPORT_OTA_UPDATE
             ReportVersionEvent versionEvent{};
             strcpy(versionEvent.version, APP_VERSION);
             getDefaultEventBus().post(versionEvent);
@@ -55,22 +57,6 @@ public:
 
 
 EspIdf8266Tuya* app;
-
-#define LED_PIN (gpio_num_t)2
-void blinkTask(void* p) {
-    gpio_pad_select_gpio(LED_PIN);
-    gpio_set_direction(LED_PIN, GPIO_MODE_OUTPUT);
-
-    while (1) {
-        gpio_set_level(LED_PIN, 1);
-        vTaskDelay(1000 / portTICK_PERIOD_MS);
-
-        gpio_set_level(LED_PIN, 0);
-        vTaskDelay(1000 / portTICK_PERIOD_MS);
-    }
-    vTaskDelete(nullptr);
-}
-
 
 extern "C" void app_main() {
     esp_log_level_set("*", ESP_LOG_VERBOSE);
@@ -96,5 +82,4 @@ extern "C" void app_main() {
     free = esp_get_free_heap_size();
     esp_logi(app, "After Free: %u", free);
 
-    xTaskCreate(&blinkTask, "test", 1024, NULL, 5, NULL);
 }
